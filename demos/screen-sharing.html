@@ -82,7 +82,9 @@
 
     connection.session = {
       screen: true,
-      oneway: true
+      oneway: true,
+      // audio: true,
+      // video: true,
     };
 
     connection.sdpConstraints.mandatory = {
@@ -92,14 +94,20 @@
 
     // https://www.rtcmulticonnection.org/docs/iceServers/
     // use your own TURN-server here!
-    connection.iceServers = [{
-      'urls': [
-        'stun:stun.l.google.com:19302',
-        'stun:stun1.l.google.com:19302',
-        'stun:stun2.l.google.com:19302',
-        'stun:stun.l.google.com:19302?transport=udp',
-      ]
-    }];
+    // connection.iceServers = [{
+    //   urls: `stun:${ window.location.hostname }:12900`,
+    //   username: 'testuser',
+    //   credential: 'superpwd',
+    // }];
+  
+    // connection.iceServers = [{
+    //   'urls': [
+    //     'stun:stun.l.google.com:19302',
+    //     'stun:stun1.l.google.com:19302',
+    //     'stun:stun2.l.google.com:19302',
+    //     'stun:stun.l.google.com:19302?transport=udp',
+    //   ]
+    // }];
 
     connection.videosContainer = document.getElementById('videos-container');
     connection.onstream = function(event) {
