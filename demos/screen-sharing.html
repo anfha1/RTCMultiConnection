@@ -15,10 +15,11 @@
     <button id="open-room">Open Room</button>
     <button id="join-room">Join Room</button>
     <button id="open-or-join-room">Auto Open Or Join Room</button>
+    <button id="fullscreen">Full Screen</button>
 
-    <div id="videos-container" style="margin: 20px 0;"></div>
+    <div id="videos-container" style="margin: 20px 0; width: 100%; height: 100%;"></div>
 
-    <div id="room-urls" style="text-align: center;display: none;background: #F1EDED;margin: 15px -10px;border: 1px solid rgb(189, 189, 189);border-left: 0;border-right: 0;"></div>
+    <div id="room-urls" style="text-align: center; display: none; background: #F1EDED; margin: 15px -10px; border: 1px solid rgb(189, 189, 189); border-left: 0; border-right: 0;"></div>
   </section>
 
   <script src="/dist/RTCMultiConnection.js"></script>
@@ -29,6 +30,21 @@
   <link rel="stylesheet" href="/dev/getHTMLMediaElement.css">
   <script src="/dev/getHTMLMediaElement.js"></script>
   <script>
+    /* When the openFullscreen() function is executed, open the video in fullscreen.
+    Note that we must include prefixes for different browsers, as they don't support the requestFullscreen method yet */
+    document.getElementById("fullscreen").onclick  = function() {
+      var elem = document.getElementById("videos-container");
+      if (elem.requestFullscreen) {
+        elem.requestFullscreen();
+      } else if (elem.webkitRequestFullscreen) { /* Safari */
+        elem.webkitRequestFullscreen();
+      } else if (elem.msRequestFullscreen) { /* IE11 */
+        elem.msRequestFullscreen();
+      }
+      document.getElementsByClassName("media-container")[0].setAttribute('style', 'height: 100%; width: 100%;');
+      document.getElementById("video-main").setAttribute('style', 'height: 100%; width: 100%;');
+    }
+
     // ......................................................
     // .......................UI Code........................
     // ......................................................
@@ -78,6 +94,8 @@
     // comment-out below line if you do not have your own socket.io server
     // connection.socketURL = 'https://muazkhan.com:9001/';
 
+    connection.enableLogs = false;
+
     connection.socketMessageEvent = 'screen-sharing-demo';
 
     connection.session = {
@@ -99,15 +117,15 @@
     //   username: 'testuser',
     //   credential: 'superpwd',
     // }];
-  
-    // connection.iceServers = [{
-    //   'urls': [
-    //     'stun:stun.l.google.com:19302',
-    //     'stun:stun1.l.google.com:19302',
-    //     'stun:stun2.l.google.com:19302',
-    //     'stun:stun.l.google.com:19302?transport=udp',
-    //   ]
-    // }];
+
+    connection.iceServers = [{
+      'urls': [
+        'stun:stun.l.google.com:19302',
+        'stun:stun1.l.google.com:19302',
+        'stun:stun2.l.google.com:19302',
+        'stun:stun.l.google.com:19302?transport=udp',
+      ]
+    }];
 
     connection.videosContainer = document.getElementById('videos-container');
     connection.onstream = function(event) {
@@ -122,6 +140,8 @@
       event.mediaElement.volume = 0;
 
       var video = document.createElement('video');
+
+      video.id = 'video-main';
 
       try {
         video.setAttributeNode(document.createAttribute('autoplay'));
@@ -143,8 +163,8 @@
 
       var width = innerWidth - 80;
       var mediaElement = getHTMLMediaElement(video, {
-        title: event.userid,
-        buttons: ['full-screen'],
+        // title: event.userid,
+        buttons: [],
         width: width,
         showOnMouseEnter: false
       });
