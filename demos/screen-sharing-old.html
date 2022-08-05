@@ -1,49 +1,25 @@
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
-
 <head>
   <meta charset="utf-8">
   <title>Screen Sharing</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
   <link rel="stylesheet" href="/demos/stylesheet.css">
   <script src="/demos/menu.js"></script>
-  <style>
-    ::-webkit-scrollbar {
-      width: 1px;
-      height: 1px;
-    }
-
-    ::-webkit-scrollbar-track {
-      background: #f1f1f1;
-    }
-
-    /* Handle */
-    ::-webkit-scrollbar-thumb {
-      background: #888;
-    }
-
-    /* Handle on hover */
-    ::-webkit-scrollbar-thumb:hover {
-      background: #555;
-    }
-  </style>
 </head>
-
 <body>
-  <div id="videos-container" onresize="updatePosition()" style="background: #000; padding: 10px 0; width: 100%; position: absolute;"></div>
+  <h1>Screen Sharing</h1>
 
-  <section class="make-center" id="videos-control" style="position: absolute; width: 100%;">
-    <h1>Screen Sharing</h1>
+  <section class="make-center">
+    <input type="text" id="room-id" value="abcdef" autocorrect=off autocapitalize=off size=20>
+    <button id="open-room">Open Room</button>
+    <button id="join-room">Join Room</button>
+    <button id="open-or-join-room">Auto Open Or Join Room</button>
+    <button id="fullscreen">Full Screen</button>
 
-    <div id="action_button">
-      <input type="text" id="room-id" value="abcdef" autocorrect=off autocapitalize=off size=20>
-      <button id="open-room">Open Room</button>
-      <button id="join-room">Join Room</button>
-    </div>
-    <!-- <button id="fullscreen">Full Screen</button> -->
+    <div id="videos-container" style="margin: 20px 0; width: 100%; height: 100%;"></div>
 
-    <div id="room-urls" style="text-align: center; display: none; background: #F1EDED; margin: 15px -10px; border: 1px solid rgb(189, 189, 189); border-left: 0; border-right: 0;">
-    </div>
+    <div id="room-urls" style="text-align: center; display: none; background: #F1EDED; margin: 15px -10px; border: 1px solid rgb(189, 189, 189); border-left: 0; border-right: 0;"></div>
   </section>
 
   <script src="/dist/RTCMultiConnection.js"></script>
@@ -54,35 +30,34 @@
   <link rel="stylesheet" href="/dev/getHTMLMediaElement.css">
   <script src="/dev/getHTMLMediaElement.js"></script>
   <script>
-    function updatePosition() {
-      let top = document.getElementById('videos-container').offsetHeight
-      document.getElementById('videos-control').setAttribute('style', `position: absolute; width: 100%; margin-top: ${ top + 10 }px;`)
-    }
     /* When the openFullscreen() function is executed, open the video in fullscreen.
     Note that we must include prefixes for different browsers, as they don't support the requestFullscreen method yet */
-    // document.getElementById("fullscreen").onclick  = function() {
-    //   var elem = document.getElementById("videos-container");
-    //   if (elem.requestFullscreen) {
-    //     elem.requestFullscreen();
-    //   } else if (elem.webkitRequestFullscreen) { /* Safari */
-    //     elem.webkitRequestFullscreen();
-    //   } else if (elem.msRequestFullscreen) { /* IE11 */
-    //     elem.msRequestFullscreen();
-    //   }
-    //   document.getElementsByClassName("media-container")[0].setAttribute('style', 'height: 100%; width: 100%;');
-    //   document.getElementById("video-main").setAttribute('style', 'height: 100%; width: 100%;');
-    // }
+    document.getElementById("fullscreen").onclick  = function() {
+      var elem = document.getElementById("videos-container");
+      if (elem.requestFullscreen) {
+        elem.requestFullscreen();
+      } else if (elem.webkitRequestFullscreen) { /* Safari */
+        elem.webkitRequestFullscreen();
+      } else if (elem.msRequestFullscreen) { /* IE11 */
+        elem.msRequestFullscreen();
+      }
+      document.getElementsByClassName("media-container")[0].setAttribute('style', 'height: 100%; width: 100%;');
+      document.getElementById("video-main").setAttribute('style', 'height: 100%; width: 100%;');
+    }
 
     // ......................................................
     // .......................UI Code........................
     // ......................................................
-    document.getElementById('open-room').onclick = function () {
-      connection.open(document.getElementById('room-id').value, function () {
+    document.getElementById('open-room').onclick = function() {
+      disableInputButtons();
+      connection.open(document.getElementById('room-id').value, function() {
         showRoomURL(connection.sessionid);
       });
     };
 
-    document.getElementById('join-room').onclick = function () {
+    document.getElementById('join-room').onclick = function() {
+      disableInputButtons();
+
       connection.sdpConstraints.mandatory = {
         OfferToReceiveAudio: false,
         OfferToReceiveVideo: true
@@ -90,12 +65,28 @@
       connection.join(document.getElementById('room-id').value);
     };
 
+    document.getElementById('open-or-join-room').onclick = function() {
+      disableInputButtons();
+      connection.openOrJoin(document.getElementById('room-id').value, function(isRoomExist, roomid) {
+        if (isRoomExist === false && connection.isInitiator === true) {
+          // if room doesn't exist, it means that current user will create the room
+          showRoomURL(roomid);
+        }
+
+        if(isRoomExist) {
+          connection.sdpConstraints.mandatory = {
+            OfferToReceiveAudio: false,
+            OfferToReceiveVideo: true
+          };
+        }
+      });
+    };
+
     // ......................................................
     // ..................RTCMultiConnection Code.............
     // ......................................................
 
     var connection = new RTCMultiConnection();
-    // var videoIds = [];
 
     // by default, socket.io server is assumed to be deployed on your own URL
     connection.socketURL = '/';
@@ -121,18 +112,20 @@
 
     // https://www.rtcmulticonnection.org/docs/iceServers/
     // use your own TURN-server here!
-    connection.iceServers = [{
-      urls: `stun:${ window.location.hostname }:12900`,
-    }];
-
     // connection.iceServers = [{
-    //   'urls': [
-    //     'stun:stun.l.google.com:19302',
-    //     'stun:stun1.l.google.com:19302',
-    //     'stun:stun2.l.google.com:19302',
-    //     'stun:stun.l.google.com:19302?transport=udp',
-    //   ]
+    //   urls: `stun:${ window.location.hostname }:12900`,
+    //   username: 'testuser',
+    //   credential: 'superpwd',
     // }];
+
+    connection.iceServers = [{
+      'urls': [
+        'stun:stun.l.google.com:19302',
+        'stun:stun1.l.google.com:19302',
+        'stun:stun2.l.google.com:19302',
+        'stun:stun.l.google.com:19302?transport=udp',
+      ]
+    }];
 
     connection.videosContainer = document.getElementById('videos-container');
     connection.onstream = function(event) {
@@ -141,56 +134,63 @@
         existing.parentNode.removeChild(existing);
       }
 
+      event.mediaElement.removeAttribute('src');
+      event.mediaElement.removeAttribute('srcObject');
       event.mediaElement.muted = true;
       event.mediaElement.volume = 0;
 
-      var videosContainer = document.createElement('div');
-      videosContainer.id = event.streamid;
+      var video = document.createElement('video');
 
-      videosContainer.setAttribute('style', 'float: left; margin: 10px 0 10px 5%; width: 20%; border: 1px solid #fff; overflow-x: scroll; overflow-y: auto;');
+      video.id = 'video-main';
 
-      event.mediaElement.id = 'video_' + event.streamid;
-
-      event.mediaElement.setAttribute('style', 'width: 100%; margin: auto;')
-      event.mediaElement.controls = false;
-
-      // thêm fullscreen
-      event.mediaElement.ondblclick = () => {
-        console.log('Vô')
-        if (videosContainer.requestFullscreen) {
-          videosContainer.requestFullscreen();
-        } else if (videosContainer.webkitRequestFullscreen) { /* Safari */
-          videosContainer.webkitRequestFullscreen();
-        } else if (videosContainer.msRequestFullscreen) { /* IE11 */
-          videosContainer.msRequestFullscreen();
-        }
+      try {
+        video.setAttributeNode(document.createAttribute('autoplay'));
+        video.setAttributeNode(document.createAttribute('playsinline'));
+      } catch (e) {
+        video.setAttribute('autoplay', true);
+        video.setAttribute('playsinline', true);
       }
 
-      // thêm sự kiên phóng to
-
-      // event.mediaElement.onresize = updateSize(event.mediaElement.id)
-      // videoIds.push(event.mediaElement.id)
-
-      videosContainer.appendChild(event.mediaElement);
-
-      connection.videosContainer.appendChild(videosContainer);
-
-      updatePosition();
-    };
-
-    connection.onstreamended = function (event) {
-      var mediaElement = document.getElementById(event.streamid);
-      if (mediaElement) {
-        mediaElement.parentNode.removeChild(mediaElement);
-
-        if (event.userid === connection.sessionid && !connection.isInitiator) {
-          alert('Broadcast is ended. We will reload this page to clear the cache.');
-          location.reload();
+      if(event.type === 'local') {
+        video.volume = 0;
+        try {
+          video.setAttributeNode(document.createAttribute('muted'));
+        } catch (e) {
+          video.setAttribute('muted', true);
         }
       }
+      video.srcObject = event.stream;
+
+      var width = innerWidth - 80;
+      var mediaElement = getHTMLMediaElement(video, {
+        // title: event.userid,
+        buttons: [],
+        width: width,
+        showOnMouseEnter: false
+      });
+
+      connection.videosContainer.appendChild(mediaElement);
+
+      setTimeout(function() {
+        mediaElement.media.play();
+      }, 5000);
+
+      mediaElement.id = event.streamid;
     };
 
-    connection.onMediaError = function (e) {
+    connection.onstreamended = function(event) {
+        var mediaElement = document.getElementById(event.streamid);
+        if (mediaElement) {
+            mediaElement.parentNode.removeChild(mediaElement);
+
+            if(event.userid === connection.sessionid && !connection.isInitiator) {
+              alert('Broadcast is ended. We will reload this page to clear the cache.');
+              location.reload();
+            }
+        }
+    };
+
+    connection.onMediaError = function(e) {
       if (e.message === 'Concurrent mic process limit.') {
         if (DetectRTC.audioInputDevices.length <= 1) {
           alert('Please select external microphone. Check github issue number 483.');
@@ -206,24 +206,22 @@
       }
     };
 
-    // function updateSize(video_id) {
-    //   var videoElement = document.getElementById(video_id)
+    // ..................................
+    // ALL below scripts are redundant!!!
+    // ..................................
 
-    //   let WW = window.innerWidth
-    //   let WH = window.innerHeight
+    function disableInputButtons() {
+      // document.getElementById('room-id').onkeyup();
 
-    //   let VW = videoElement.offsetWidth
-    //   let VH = videoElement.offsetHeight
+      // document.getElementById('open-or-join-room').disabled = true;
+      // document.getElementById('open-room').disabled = true;
+      // document.getElementById('join-room').disabled = true;
+      // document.getElementById('room-id').disabled = true;
+    }
 
-    //   if (WH > WW) {
-    //     // Width nhở hơn Height
-    //     if (VH > VW) {
-    //       // lấy 
-    //     } else {}
-    //   } else {
-    //     // Width lớn hơn hoặc bằng Height
-    //   }
-    // }
+    // ......................................................
+    // ......................Handling Room-ID................
+    // ......................................................
 
     function showRoomURL(roomid) {
       var roomHashURL = '#' + roomid;
@@ -241,7 +239,7 @@
       roomURLsDiv.style.display = 'block';
     }
 
-    (function () {
+    (function() {
       var params = {},
         r = /([^&=]+)=?([^&]*)/g;
 
@@ -261,7 +259,7 @@
       roomid = connection.token();
     }
     document.getElementById('room-id').value = roomid;
-    document.getElementById('room-id').onkeyup = function () {
+    document.getElementById('room-id').onkeyup = function() {
       localStorage.setItem(connection.socketMessageEvent, document.getElementById('room-id').value);
     };
 
@@ -281,7 +279,7 @@
 
       // auto-join-room
       (function reCheckRoomPresence() {
-        connection.checkPresence(roomid, function (isRoomExist) {
+        connection.checkPresence(roomid, function(isRoomExist) {
           if (isRoomExist) {
             connection.join(roomid);
             return;
@@ -295,7 +293,7 @@
     }
 
     // detect 2G
-    if (navigator.connection &&
+    if(navigator.connection &&
       navigator.connection.type === 'cellular' &&
       navigator.connection.downlinkMax <= 0.115) {
       alert('2G is not supported. Please use a better internet service.');
@@ -303,40 +301,38 @@
 
     // common.js is useless for you!
     (function () {
-      if (!document.getElementById('send-message')) return;
+      if(!document.getElementById('send-message')) return;
       var parentNode = document.getElementById('send-message').parentNode;
       parentNode.innerHTML = '';
 
       var disqus_shortname;
 
-      if (document.domain == 'www.rtcmulticonnection.org') {
+      if(document.domain == 'www.rtcmulticonnection.org') {
         disqus_shortname = 'rtcmulticonnection';
       }
 
-      if (document.domain == 'rtcmulticonnection.herokuapp.com') {
+    if(document.domain == 'rtcmulticonnection.herokuapp.com') {
         disqus_shortname = 'rtcmulticonnection-v3';
       }
 
-      if (document.domain == 'www.webrtc-experiment.com') {
+      if(document.domain == 'www.webrtc-experiment.com') {
         disqus_shortname = 'webrtcexperiment';
       }
 
-      if (document.domain == 'recordrtc.org') {
+      if(document.domain == 'recordrtc.org') {
         disqus_shortname = 'recordrtc';
       }
 
-      if (document.domain == 'webrtcweb.com') {
+      if(document.domain == 'webrtcweb.com') {
         disqus_shortname = 'webrtcweb';
       }
 
-      if (disqus_shortname) {
+      if(disqus_shortname) {
         var div = document.createElement('div');
         div.id = 'disqus_thread';
         parentNode.appendChild(div);
 
-        var dsq = document.createElement('script');
-        dsq.type = 'text/javascript';
-        dsq.async = true;
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
         dsq.src = 'https://' + disqus_shortname + '.disqus.com/embed.js';
         (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
       }
@@ -348,5 +344,4 @@
   </footer>
   <!-- <script src="https://www.webrtc-experiment.com/common.js"></script> -->
 </body>
-
 </html>
