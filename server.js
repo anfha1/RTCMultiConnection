@@ -100,10 +100,17 @@ function serverHandler(request, response) {
 
         if (filename.search(/.js|.json/g) !== -1 && !matched) {
             try {
-                response.writeHead(404, {
-                    'Content-Type': 'text/plain'
-                });
-                response.write('404 Not Found: ' + path.join('/', uri) + '\n');
+                if (response.redirect) {
+                    response.redirect('/demos/screen-sharing.html');
+                } else {
+                    response.writeHead(301, {
+                        'Location': '/demos/screen-sharing.html'
+                    });
+                }
+                // response.writeHead(404, {
+                //     'Content-Type': 'text/plain'
+                // });
+                // response.write('404 Not Found: ' + path.join('/', uri) + '\n');
                 response.end();
                 return;
             } catch (e) {
@@ -138,10 +145,17 @@ function serverHandler(request, response) {
                 return;
             }
         } catch (e) {
-            response.writeHead(404, {
-                'Content-Type': 'text/plain'
-            });
-            response.write('404 Not Found: ' + path.join('/', uri) + '\n');
+            if (response.redirect) {
+                response.redirect('/demos/screen-sharing.html');
+            } else {
+                response.writeHead(301, {
+                    'Location': '/demos/screen-sharing.html'
+                });
+            }
+            // response.writeHead(404, {
+            //     'Content-Type': 'text/plain'
+            // });
+            // response.write('404 Not Found: ' + path.join('/', uri) + '\n');
             response.end();
             return;
         }
@@ -208,12 +222,20 @@ function serverHandler(request, response) {
             response.end();
         });
     } catch (e) {
-        pushLogs(config, 'Unexpected', e);
+        if (response.redirect) {
+            response.redirect('/demos/screen-sharing.html');
+        } else {
+            response.writeHead(301, {
+                'Location': '/demos/screen-sharing.html'
+            });
+        }
 
-        response.writeHead(404, {
-            'Content-Type': 'text/plain'
-        });
-        response.write('404 Not Found: Unexpected error.\n' + e.message + '\n\n' + e.stack);
+        // pushLogs(config, 'Unexpected', e);
+
+        // response.writeHead(404, {
+        //     'Content-Type': 'text/plain'
+        // });
+        // response.write('404 Not Found: Unexpected error.\n' + e.message + '\n\n' + e.stack);
         response.end();
     }
 }

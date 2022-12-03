@@ -1,10 +1,10 @@
 {
   "socketURL": "/",
   "dirPath": "",
-  "homePage": "/demos/screen-sharing.html",
+  "homePage": "/",
   "socketMessageEvent": "RTCMultiConnection-Message",
   "socketCustomEvent": "RTCMultiConnection-Custom-Message",
-  "port": "12010",
+  "port": "11001",
   "enableLogs": "false",
   "autoRebootServerOnFailure": "false",
   "isUseHTTPs": "false",
